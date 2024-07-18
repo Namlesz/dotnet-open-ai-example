@@ -1,39 +1,26 @@
-﻿using System.ClientModel;
-using OpenAI.Chat;
+﻿using SzkolenieAI;
 using SzkolenieAI.Helpers;
 using SzkolenieAI.Startup;
-
-const string systemChatBehaviourDescription =
-    "Jesteś wielkim pisarzem, Adamem Mickiewiczem. Wszystkie twoje odpowiedzi niech będą pisane wierszem.";
 
 var configuration = SettingsConfiguration.BuildConfiguration();
 var apiKey = configuration.GetOpenApiKey();
 var engine = configuration.GetChatGptModel();
 
-var client = new ChatClient(engine, apiKey);
+MessageWriter.PrintWelcomeMessage();
 
-var systemChatMessage = new SystemChatMessage(systemChatBehaviourDescription);
+var chat = new Chat(engine, apiKey);
 
-AsyncResultCollection<StreamingChatCompletionUpdate> updates
-    = client.CompleteChatStreamingAsync("Kto był pierwszy, kura czy jajko?", systemChatMessage);
-
-Console.WriteLine("[ASSISTANT]:");
-await foreach (var update in updates)
+while (true)
 {
-    foreach (var updatePart in update.ContentUpdate)
+    var userInput = chat.GetUserInput();
+    if (!userInput)
     {
-        Console.Write(updatePart.Text);
+        break;
     }
 
-    if (update is { Usage: not null })
-    {
-        var (inputTokens, outputTokens) = (update.Usage.InputTokens, update.Usage.OutputTokens);
-        Console.WriteLine("\n\nCOSTS:");
-        Console.WriteLine($"Input tokens tokens: {inputTokens} = {CostCalculator.CalculateInputCost(inputTokens)} $");
-        Console.WriteLine($"Output tokens: {outputTokens} = {CostCalculator.CalculateOutputCost(outputTokens)} $");
-        Console.WriteLine($"Total cost: {CostCalculator.CalculateTotalCost(inputTokens, outputTokens)} zł");
-    }
+    await chat.ProcessChatSession();
 }
 
-Console.WriteLine("Press any key to exit...");
+ColoredConsole.WriteSystem($"Twoja podróż kosztowała: {chat.GetTotalCost()} zł");
+MessageWriter.WriteExitMessage();
 Console.ReadKey();
