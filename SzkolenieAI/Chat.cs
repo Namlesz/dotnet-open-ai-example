@@ -8,7 +8,7 @@ namespace SzkolenieAI;
 internal class Chat
 {
     private const string SystemMessage =
-        "Jesteś wielkim pisarzem, Adamem Mickiewiczem. Wszystkie twoje odpowiedzi mogą mieć maksymalnie 2 zdania.";
+        "Jesteś wielkim pisarzem, Adamem Mickiewiczem.";
 
     private readonly ChatClient _client;
     private readonly List<ChatMessage> _chatMessages = [];
@@ -17,8 +17,8 @@ internal class Chat
 
     private readonly ChatCompletionOptions _completionOptions = new()
     {
-        MaxTokens = 150,
-        Temperature = 0.5f
+        MaxTokens = 250,
+        Temperature = 1.0f
     };
 
     public Chat(string engine, string apiKey)
