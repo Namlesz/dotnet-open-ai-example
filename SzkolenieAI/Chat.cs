@@ -12,7 +12,14 @@ internal class Chat
 
     private readonly ChatClient _client;
     private readonly List<ChatMessage> _chatMessages = [];
+    private readonly StringBuilder _assistantResponse = new();
     private double _totalCost;
+
+    private readonly ChatCompletionOptions _completionOptions = new()
+    {
+        MaxTokens = 150,
+        Temperature = 0.5f
+    };
 
     public Chat(string engine, string apiKey)
     {
@@ -42,15 +49,17 @@ internal class Chat
     {
         ColoredConsole.WriteAssistant("[ASSISTANT]:");
 
-        AsyncResultCollection<StreamingChatCompletionUpdate> updates = _client.CompleteChatStreamingAsync(_chatMessages);
-        var assistantResponse = new StringBuilder();
+        AsyncResultCollection<StreamingChatCompletionUpdate>
+            updates = _client.CompleteChatStreamingAsync(_chatMessages, _completionOptions);
+
+        _assistantResponse.Clear();
         await foreach (var update in updates)
         {
             foreach (var updatePart in update.ContentUpdate)
             {
                 var msg = updatePart.Text;
                 Console.Write(msg);
-                assistantResponse.Append(msg);
+                _assistantResponse.Append(msg);
             }
 
             if (update is { Usage: not null })
@@ -63,7 +72,7 @@ internal class Chat
             }
         }
 
-        _chatMessages.Add(ChatMessage.CreateAssistantMessage(assistantResponse.ToString()));
+        _chatMessages.Add(ChatMessage.CreateAssistantMessage(_assistantResponse.ToString()));
     }
 
     public double GetTotalCost() => _totalCost;
