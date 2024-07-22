@@ -29,4 +29,10 @@ internal static class ColoredConsole
         Console.WriteLine(message);
         Console.ResetColor();
     }
+
+    public static void WriteSeparator(string prefix = "", string suffix = "")
+    {
+        const string message = "--------------------------------------------------";
+        ColoredConsole.WriteInfo(prefix + message + suffix);
+    }
 }

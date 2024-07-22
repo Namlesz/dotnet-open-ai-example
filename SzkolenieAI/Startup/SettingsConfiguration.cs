@@ -1,7 +1,9 @@
+using System.Globalization;
 using Microsoft.Extensions.Configuration;
 
 namespace SzkolenieAI.Startup;
 
+// TODO: Get all config at once
 internal static class SettingsConfiguration
 {
     public static IConfiguration BuildConfiguration()
@@ -33,5 +35,27 @@ internal static class SettingsConfiguration
         }
 
         return model;
+    }
+
+    public static double GetInputTokenCosts(this IConfiguration config)
+    {
+        var inputTokenPrice = config["OpenAI:InputTokenPrice"];
+        if (string.IsNullOrEmpty(inputTokenPrice))
+        {
+            throw new ArgumentNullException(inputTokenPrice, "Input token price cannot be null or empty.");
+        }
+
+        return double.Parse(inputTokenPrice, CultureInfo.InvariantCulture);
+    }
+
+    public static double GetOutputTokenCosts(this IConfiguration config)
+    {
+        var outputTokenPrice = config["OpenAI:OutputTokenPrice"];
+        if (string.IsNullOrEmpty(outputTokenPrice))
+        {
+            throw new ArgumentNullException(outputTokenPrice, "Output token price cannot be null or empty.");
+        }
+
+        return double.Parse(outputTokenPrice, CultureInfo.InvariantCulture);
     }
 }

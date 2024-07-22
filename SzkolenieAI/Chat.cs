@@ -12,6 +12,7 @@ internal class Chat
 
     private readonly ChatClient _client;
     private readonly List<ChatMessage> _chatMessages = [];
+    private readonly CostCalculator _costCalculator;
     private readonly StringBuilder _assistantResponse = new();
     private double _totalCost;
 
@@ -21,10 +22,11 @@ internal class Chat
         Temperature = 1.0f
     };
 
-    public Chat(string engine, string apiKey)
+    public Chat(string engine, string apiKey, CostCalculator costCalculator)
     {
         _client = new ChatClient(engine, apiKey);
         _chatMessages.Add(ChatMessage.CreateSystemMessage(SystemMessage));
+        _costCalculator = costCalculator;
     }
 
     public bool GetUserInput()
@@ -65,10 +67,10 @@ internal class Chat
             if (update is { Usage: not null })
             {
                 var (inputTokens, outputTokens) = (update.Usage.InputTokens, update.Usage.OutputTokens);
-                MessageWriter.WriteCosts(inputTokens, outputTokens);
+                _costCalculator.WriteCosts(inputTokens, outputTokens);
 
                 // TODO: REMOVE
-                _totalCost += CostCalculator.CalculateTotalCost(inputTokens, outputTokens);
+                _totalCost += _costCalculator.CalculateTotalCost(inputTokens, outputTokens);
             }
         }
 
