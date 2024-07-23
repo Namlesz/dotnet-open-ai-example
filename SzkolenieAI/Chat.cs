@@ -17,6 +17,8 @@ internal class Chat
     private readonly CostCalculator _costCalculator;
     private readonly StringBuilder _assistantResponse = new();
     private double _totalCost;
+    private int _inputTokens;
+    private int _outputTokens;
 
     private static readonly ChatTool getCurrenLocationTool = ChatTool.CreateFunctionTool(
         functionName: nameof(LocationApi.GetLocationAsync),
@@ -93,19 +95,15 @@ internal class Chat
                 chatUpdates = _client.CompleteChatStreamingAsync(_chatMessages, _completionOptions);
 
             _assistantResponse.Clear();
-            await foreach (StreamingChatCompletionUpdate chatUpdate in chatUpdates)
+            await foreach (var chatUpdate in chatUpdates)
             {
-                // if (chatUpdate is { Usage: not null })
-                // {
-                //     var (inputTokens, outputTokens) = (chatUpdate.Usage.InputTokens, chatUpdate.Usage.OutputTokens);
-                //     _costCalculator.WriteCosts(inputTokens, outputTokens);
-                //
-                //     // TODO: REMOVE
-                //     _totalCost += _costCalculator.CalculateTotalCost(inputTokens, outputTokens);
-                // }
+                if (chatUpdate is { Usage: not null })
+                {
+                    (_inputTokens, _outputTokens) = (chatUpdate.Usage.InputTokens, chatUpdate.Usage.OutputTokens);
+                }
 
                 // Accumulate the text content as new updates arrive.
-                foreach (ChatMessageContentPart contentPart in chatUpdate.ContentUpdate)
+                foreach (var contentPart in chatUpdate.ContentUpdate)
                 {
                     var msg = contentPart.Text;
                     Console.Write(msg);
@@ -113,7 +111,7 @@ internal class Chat
                 }
 
                 // Build the tool calls as new updates arrive.
-                foreach (StreamingChatToolCallUpdate toolCallUpdate in chatUpdate.ToolCallUpdates)
+                foreach (var toolCallUpdate in chatUpdate.ToolCallUpdates)
                 {
                     // Keep track of which tool call ID belongs to this update index.
                     if (toolCallUpdate.Id is not null)
@@ -207,7 +205,11 @@ internal class Chat
                     }
 
                     case ChatFinishReason.Length:
-                        throw new NotImplementedException("Incomplete model output due to MaxTokens parameter or token limit exceeded.");
+                        Console.WriteLine();
+                        ColoredConsole.WriteInfo("Limit słów osiągnięty. Abym mógł kontynuować, wpisz 'kontynuuj'.");
+                        _chatMessages.Add(new AssistantChatMessage(_assistantResponse.ToString()));
+
+                        break;
 
                     case ChatFinishReason.ContentFilter:
                         throw new NotImplementedException("Omitted content due to a content filter flag.");
@@ -220,6 +222,11 @@ internal class Chat
                 }
             }
         } while (requiresAction);
+
+        _costCalculator.WriteCosts(_inputTokens, _outputTokens);
+        _totalCost += _costCalculator.CalculateTotalCost(_inputTokens, _outputTokens);
+        _inputTokens = 0;
+        _outputTokens = 0;
     }
 
     public double GetTotalCost() => _totalCost;
